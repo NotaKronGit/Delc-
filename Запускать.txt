@@ -1,0 +1,2 @@
+Запускать вот это:
+DelcC#\Decl\Decl\bin\Debug\Decl.exe !!!
