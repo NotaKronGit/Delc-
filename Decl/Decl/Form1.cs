@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data.SqlServerCe;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 using System.Xml.Linq;
 namespace Decl
@@ -16,9 +17,8 @@ namespace Decl
         private static List<importer> importLs;
         private static List<supply> supl;
         private static int headerColumnIndex;
-#pragma warning disable CS0414 // Полю "Form1.upLoadToDb" присвоено значение, но оно ни разу не использовано.
         private static bool upLoadToDb = false;
-#pragma warning restore CS0414 // Полю "Form1.upLoadToDb" присвоено значение, но оно ни разу не использовано.
+
         private static string password_sdf = "7338a7e6-fd3b-49d1-8d90-ddbbc1b39fa1";
         private static SqlCeConnection conn = null;
 
@@ -144,7 +144,6 @@ namespace Decl
                     {
                         string test = moveElement.Element("Оборот").Attribute("П000000000003").Value;
                         tabControl1.TabPages[tabPagesCount].Controls.Add(createTable(Convert.ToInt32(test), moveElement));
-
 
                     }
 
@@ -505,6 +504,7 @@ namespace Decl
                         label2.Text = "Подключение к базе данных успешно. Выгрузку можно произвести по каждому подразделению.";
                         label2.ForeColor = Color.Green;
                         upLoadToDb = true;
+                        addUploadBtnonTabpage();
 
                     }
                     catch (Exception ex)
@@ -513,6 +513,7 @@ namespace Decl
                         label2.Text = ex.Message;
                         upLoadToDb = false;
                         checkBox1.Checked = false;
+                        deleteUploadBtnFromTabpage();
 
                     }
                 }
@@ -525,20 +526,38 @@ namespace Decl
                 }
                 label2.Text = "Выгрузка в базу данных производься не будет";
                 label2.ForeColor = Color.Red;
+                upLoadToDb = false;
+                deleteUploadBtnFromTabpage();
             }
         }
 
-        private void tabControl1_Selected(object sender, TabControlEventArgs e)
+
+
+        private void UploadBtn_Click(object sender, EventArgs e)
         {
-            if (upLoadToDb == true)
+            Button clickedButton = sender as Button;
+            MessageBox.Show("эта кнопка распаложена на панели " + clickedButton.Name, "Инфо", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+        }
+        private void addUploadBtnonTabpage()
+        {
+            foreach (TabPage tpb in tabControl1.TabPages)
             {
                 Button uploadBtn = new Button();
                 uploadBtn.Name = "uploadBtn" + tabControl1.TabPages[tabControl1.SelectedIndex];
                 uploadBtn.Text = "Загрузить";
                 uploadBtn.Location = new Point(tabControl1.Location.X + 530, tabControl1.Location.Y - 50);
-                tabControl1.TabPages[tabControl1.SelectedIndex].Controls.Add(uploadBtn);
+                tpb.Controls.Add(uploadBtn);
+                uploadBtn.Click += UploadBtn_Click;
             }
         }
+        private void deleteUploadBtnFromTabpage()
+        {
+            foreach (TabPage tpb in tabControl1.TabPages)
+            {
+                tpb.Controls.OfType<Button>().ToList().ForEach(btn => btn.Dispose());
+            }
+        }
+
     }
 
     public class producer
