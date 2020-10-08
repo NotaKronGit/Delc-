@@ -20,7 +20,8 @@ namespace Decl
         private static bool upLoadToDb = false;
         private static string password_sdf = "7338a7e6-fd3b-49d1-8d90-ddbbc1b39fa1";
         private static SqlCeConnection conn = null;
-        private static Dictionary<int, Dictionary<string,XElement>> organization_turnover;
+        private static List<organization> organizations;
+
 
         private void button1_Click(object sender, EventArgs e)
         {
@@ -41,11 +42,11 @@ namespace Decl
                 checkBox1.Visible = true;
                 checkBox1.Checked = false;
                 label2.Visible = true;
-                organization_turnover =new Dictionary<int, Dictionary<string, XElement>>();
                 XDocument xdoc = XDocument.Load(path);
                 prod = new List<producer>();
                 importLs = new List<importer>();
                 supl = new List<supply>();
+                organizations = new List<organization>();
                 List<producer> findProd = new List<producer>();
                 string dateDoc = xdoc.Element("Файл").Attribute("ДатаДок").Value;
                 string period = "";
@@ -146,7 +147,14 @@ namespace Decl
                     {
                         string test = moveElement.Element("Оборот").Attribute("П000000000003").Value;
                         tabControl1.TabPages[tabPagesCount].Controls.Add(createTable(Convert.ToInt32(test), moveElement));
-                        organization_turnover.Add(tabPagesCount,new Dictionary<string, XElement> {[sobst]= moveElement });
+                        organizations.Add(new organization()
+                        {
+                            tabId = tabPagesCount,
+                            Name = sobst,
+                            availability_of_turnover = true,
+                            id_alchol = Convert.ToInt32(test),
+                            turnover = moveElement
+                        });
                     }
 
 
@@ -159,9 +167,15 @@ namespace Decl
                         l2.Location = new Point(tabControl1.Location.X - 10, tabControl1.Location.Y - 15);
                         l2.ForeColor = Color.Red;
                         tabControl1.TabPages[tabPagesCount].Controls.Add(l2);
-                        organization_turnover.Add(tabPagesCount, new Dictionary<string, XElement> { [sobst] = moveElement });
+                        organizations.Add(new organization()
+                        {
+                            tabId = tabPagesCount,
+                            Name = sobst,
+                            availability_of_turnover = false,
+                            id_alchol = 0,
+                            turnover = null
+                        });
                     }
-                    // tabControl1.TabPages[tabPagesCount].Controls.Add(new RichTextBox() { Text = "NewRichTextBox" + tabPagesCount.ToString(), Top = (26), Dock = System.Windows.Forms.DockStyle.Fill });
                     tabPagesCount++;
 
                 }
@@ -607,6 +621,15 @@ namespace Decl
         public string retOut { get; set; }
         public string saleAll { get; set; }
         public string endBalance { get; set; }
+    }
+    public class organization
+    {
+        public int tabId { get; set; }
+        public string Name { get; set; }
+        public int id_alchol { get; set; }
+        public bool availability_of_turnover { get; set; }
+        public XElement turnover { get; set; }
+
     }
 
 
