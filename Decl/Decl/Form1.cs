@@ -131,6 +131,7 @@ namespace Decl
                 {
 
                     tabControl1.TabPages.Add("NewTab" + tabPagesCount.ToString());
+                    tabControl1.TabPages[tabPagesCount].Name = "NewTab" + tabPagesCount.ToString();
                     Label l1 = new Label();
                     l1.Width = tabPage1.Width - 550;
                     l1.Name = "label";
@@ -559,14 +560,24 @@ namespace Decl
         {
             foreach (TabPage tpb in tabControl1.TabPages)
             {
-                Button uploadBtn = new Button();
-                uploadBtn.Name = "uploadBtn" + tabControl1.TabPages[tabControl1.SelectedIndex];
-                uploadBtn.Text = "Загрузить";
-                uploadBtn.Location = new Point(tabControl1.Location.X + 530, tabControl1.Location.Y - 50);
-                tpb.Controls.Add(uploadBtn);
-                uploadBtn.Click += UploadBtn_Click;
+                int tab_index = tabControl1.TabPages.IndexOfKey(tpb.Name);
+                if (check_availability_turnover(tab_index))
+                {
+                    Button uploadBtn = new Button();
+                    uploadBtn.Name = "uploadBtn" + tabControl1.SelectedIndex.ToString();
+                    uploadBtn.Text = "Загрузить";
+                    uploadBtn.Location = new Point(tabControl1.Location.X + 530, tabControl1.Location.Y - 45);
+                    tpb.Controls.Add(uploadBtn);
+                    uploadBtn.Click += UploadBtn_Click;
+                }
             }
         }
+
+        private bool check_availability_turnover(int selectedIndex)
+        {
+            return organizations.Find(x => x.tabId == selectedIndex).availability_of_turnover;
+        }
+
         private void deleteUploadBtnFromTabpage()
         {
             foreach (TabPage tpb in tabControl1.TabPages)
