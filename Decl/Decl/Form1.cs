@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Data.SqlServerCe;
 using System.Drawing;
 using System.Linq;
@@ -83,7 +84,7 @@ namespace Decl
                         prod.Add(new producer()
                         {
                             Id = Convert.ToInt32(prodElement.Attribute("ИДПроизвИмп").Value),
-                            Name = prodElement.Attribute("П000000000004").Value,
+                            Name = prodElement.Attribute("П000000000004").Value.Replace(@"\", ""),
                             INN = producerINN,
                             KPP = producerKPP,
                         });
@@ -95,15 +96,15 @@ namespace Decl
                         if (prodElement.Attribute("П000000000005") != null)
                             producerINN = prodElement.Attribute("П000000000005").Value;
                         else
-                            producerINN = "-------";
+                            producerINN = "-";
                         if (prodElement.Attribute("П000000000006") != null)
                             producerKPP = prodElement.Attribute("П000000000006").Value;
                         else
-                            producerKPP = "---------";
+                            producerKPP = "-";
                         prod.Add(new producer()
                         {
                             Id = Convert.ToInt32(prodElement.Attribute("ИДПроизвИмп").Value),
-                            Name = prodElement.Attribute("П000000000004").Value,
+                            Name = prodElement.Attribute("П000000000004").Value.Replace(@"\", ""),
                             INN = producerINN,
                             KPP = producerKPP,
                         });
@@ -118,7 +119,7 @@ namespace Decl
                     importLs.Add(new importer()
                     {
                         Id = Convert.ToInt32(prodElement.Attribute("ИдПостав").Value),
-                        Name = prodElement.Attribute("П000000000007").Value,
+                        Name = prodElement.Attribute("П000000000007").Value.Replace(@"\", ""),
                         INN = prodElement.Element("ЮЛ").Attribute("П000000000009").Value,
                         KPP = prodElement.Element("ЮЛ").Attribute("П000000000010").Value,
                     });
@@ -135,7 +136,7 @@ namespace Decl
                     Label l1 = new Label();
                     l1.Width = tabPage1.Width - 550;
                     l1.Name = "label";
-                    string sobst = moveElement.Attribute("Наим").Value;
+                    string sobst = moveElement.Attribute("Наим").Value.Replace(@"\", "");
                     if (moveElement.Attribute("КППЮЛ") != null)
                     {
                         sobst += "  /  " + moveElement.Attribute("КППЮЛ").Value;
@@ -432,6 +433,7 @@ namespace Decl
             return nameProd;
         }
 
+
         private void setSupply(int idGood, int idProd, string sobst, XElement supplyList)
         {
             string idImporter = supplyList.Attribute("ИдПоставщика").Value;
@@ -523,6 +525,7 @@ namespace Decl
                         label2.ForeColor = Color.Green;
                         upLoadToDb = true;
                         addUploadBtnonTabpage();
+                        button2.Visible = true;
 
                     }
                     catch (Exception ex)
@@ -532,6 +535,7 @@ namespace Decl
                         upLoadToDb = false;
                         checkBox1.Checked = false;
                         deleteUploadBtnFromTabpage();
+                        button2.Visible = false;
 
                     }
                 }
@@ -546,6 +550,7 @@ namespace Decl
                 label2.ForeColor = Color.Red;
                 upLoadToDb = false;
                 deleteUploadBtnFromTabpage();
+                button2.Visible = false;
             }
         }
 
@@ -554,7 +559,53 @@ namespace Decl
         private void UploadBtn_Click(object sender, EventArgs e)
         {
             Button clickedButton = sender as Button;
-            MessageBox.Show("эта кнопка распаложена на панели " + clickedButton.Name, "Инфо", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+            int tabIndex = tabControl1.TabPages.IndexOfKey(clickedButton.Parent.Name);
+
+            string[] name_and_kpp = organizations.Find(x => x.tabId == tabIndex).Name.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+            int id_organization = get_id_organization_from_db(name_and_kpp);
+
+
+            get_list_of_period_from_db();
+        }
+
+        private int get_id_organization_from_db(string[] name_and_kpp)
+        {
+            int id_organization = 0;
+            string sql = null; SqlCeCommand cmd = new SqlCeCommand();
+            cmd.Connection = conn;
+            if (name_and_kpp.Length > 1)
+            {
+                sql = "SELECT id FROM Wrk_org Where OrgName='" + name_and_kpp[0].Trim() + "' and INN='" + name_and_kpp[1].Trim() + "'";
+                cmd.CommandText = sql;
+
+            }
+            else
+            {
+                sql = "SELECT id FROM Wrk_org Where OrgName=@org_name";
+                cmd.CommandText = sql;
+                cmd.Parameters.Add(new SqlCeParameter("org_name", name_and_kpp[0]));
+            }
+            using (SqlCeDataReader reader = cmd.ExecuteResultSet(ResultSetOptions.Scrollable))
+            {
+                while (reader.Read())
+                {
+                    id_organization = reader.GetInt32(0);
+                }
+            }
+
+            return id_organization;
+        }
+
+        private void get_list_of_period_from_db()
+        {
+            string sql = "Select * From DecHeader";
+            SqlCeCommand cmd = new SqlCeCommand();
+            cmd.Connection = conn;
+            cmd.CommandText = sql;
+            using (SqlCeDataReader reader = cmd.ExecuteResultSet(ResultSetOptions.Scrollable))
+            {
+                if (reader.HasRows) sql = "sdsdsd";
+            }
         }
         private void addUploadBtnonTabpage()
         {
@@ -586,6 +637,75 @@ namespace Decl
             }
         }
 
+        private void button2_Click(object sender, EventArgs e)
+        {
+            import_producer_to_db();
+        }
+
+        private void import_producer_to_db()
+        {
+            foreach (producer imported_producer in prod)
+            {
+                if (check_producer_in_db(imported_producer) == false)
+                {
+                    insert_organization_to_db(imported_producer);
+                }
+            }
+        }
+
+        private void insert_organization_to_db(producer imported_producer)
+        {
+            string sql;
+            SqlCeCommand cmd = new SqlCeCommand();
+            cmd.Connection = conn;
+            if (imported_producer.KPP.Equals("-"))
+            {
+                sql = "INSERT INTO Wrk_Contragents (INN,OrgName,OrgType,producer,carrier) VALUES " +
+                    "('" + imported_producer.INN + "','"
+                    + imported_producer.Name + "',"
+                    + 1 + ","
+                    + "'true',"
+                    + "'false')";
+            }
+            else
+            {
+                sql = "INSERT INTO Wrk_Contragents (INN,KPP,OrgName,OrgType,producer,carrier) VALUES " +
+      "('" + imported_producer.INN + "','"
+      + imported_producer.KPP + "','"
+      + imported_producer.Name + "',"
+      + 1 + ","
+      + "'true',"
+      + "'false')";
+                string dfd = @imported_producer.Name;
+                MessageBox.Show(dfd, "Выгрузка справочников", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+
+            }
+
+            cmd.CommandText = sql;
+            int count = cmd.ExecuteNonQuery();
+            MessageBox.Show("Выгрузка справочников окончена.", "Выгрузка справочников", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+        }
+
+        private bool check_producer_in_db(producer imported_producer)
+        {
+            string sql = null;
+            if (imported_producer.KPP.Equals("-"))
+            {
+                sql = "SELECT * FROM Wrk_Contragents WHERE INN='" + imported_producer.INN + "'";
+            }
+            else
+            {
+                sql = "SELECT * FROM Wrk_Contragents WHERE INN='" + imported_producer.INN + "' and KPP='" + imported_producer.KPP + "'";
+            }
+            SqlCeCommand cmd = new SqlCeCommand();
+            cmd.Connection = conn;
+            cmd.CommandText = sql;
+            using (SqlCeDataReader reader = cmd.ExecuteResultSet(ResultSetOptions.Scrollable))
+            {
+                if (reader.HasRows) return true;
+                else return false;
+            }
+        }
     }
 
     public class producer
