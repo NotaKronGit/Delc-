@@ -22,6 +22,7 @@ namespace Decl
         private static string password_sdf = "7338a7e6-fd3b-49d1-8d90-ddbbc1b39fa1";
         private static SqlCeConnection conn = null;
         private static List<organization> organizations;
+        private static string kpp_organization = null;
 
 
         private void button1_Click(object sender, EventArgs e)
@@ -110,9 +111,6 @@ namespace Decl
                         });
                     }
                 }
-
-
-
                 foreach (XElement prodElement in xdoc.Element("Файл").Element("Справочники").Elements("Поставщики"))
                 {
 
@@ -124,8 +122,6 @@ namespace Decl
                         KPP = prodElement.Element("ЮЛ").Attribute("П000000000010").Value,
                     });
                 }
-
-
 
                 int tabPagesCount = 0;
                 foreach (XElement moveElement in xdoc.Element("Файл").Element("Документ").Elements("ОбъемОборота"))
@@ -639,11 +635,91 @@ namespace Decl
         {
             import_producer_to_db();
             import_importer_to_db();
+            import_organization_to_db();
+        }
+
+        private string get_kpp_organization()
+        {
+            string sql = "Select kpp From wrk_org where OrgType=1";
+            string kpp = "";
+            SqlCeCommand cmd = new SqlCeCommand();
+            cmd.Connection = conn;
+            cmd.CommandText = sql;
+            using (SqlCeDataReader reader = cmd.ExecuteResultSet(ResultSetOptions.Scrollable))
+            {
+                if (reader.HasRows)
+                {
+                    while (reader.Read())
+                    {
+                        kpp = reader.GetString(0);
+                    }
+
+
+                }
+                return kpp;
+            }
+        }
+
+        private void import_organization_to_db()
+        {
+            foreach (organization imported_organization in organizations)
+            {
+                if (check_organization_in_db(imported_organization) == false)
+                {
+                    insert_organization_to_db(imported_organization);
+                }
+            }
+        }
+
+        private void insert_organization_to_db(organization imported_organization)
+        {
+            string[] name_and_kpp = imported_organization.Name.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+            string sql;
+            SqlCeCommand cmd = new SqlCeCommand();
+            cmd.Connection = conn;
+            if (name_and_kpp.Length < 2)
+            {
+                sql = "INSERT INTO wrk_org (KPP,OrgName,Head_id) VALUES " +
+                    "('" + get_kpp_organization() + "','"
+                    + name_and_kpp[0].Trim() + "',1)";
+            }
+            else
+            {
+                sql = "INSERT INTO wrk_org (INN,KPP,OrgName,Head_id) VALUES " +
+                                   "('" + name_and_kpp[1].Trim() + "','"
+                                   + get_kpp_organization() + "','"
+                                   + name_and_kpp[0].Trim() + "',1)";
+            }
+
+            cmd.CommandText = sql;
+            int count = cmd.ExecuteNonQuery();
+        }
+        private bool check_organization_in_db(organization imported_organization)
+        {
+
+            string[] name_and_kpp = imported_organization.Name.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+            string sql = null;
+            if (name_and_kpp.Length < 2)
+            {
+                sql = "SELECT * FROM wrk_org WHERE OrgName='" + name_and_kpp[0].Trim() + "'";
+            }
+            else
+            {
+                sql = "SELECT * FROM wrk_org WHERE OrgName='" + name_and_kpp[0].Trim() + "' and INN='" + name_and_kpp[1].Trim() + "'";
+            }
+            SqlCeCommand cmd = new SqlCeCommand();
+            cmd.Connection = conn;
+            cmd.CommandText = sql;
+            using (SqlCeDataReader reader = cmd.ExecuteResultSet(ResultSetOptions.Scrollable))
+            {
+                if (reader.HasRows) return true;
+                else return false;
+            }
         }
 
         private void import_importer_to_db()
         {
-           foreach (importer imported_importer in importLs)
+            foreach (importer imported_importer in importLs)
             {
                 if (check_importer_in_db(imported_importer) == false)
                 {
@@ -658,22 +734,22 @@ namespace Decl
             cmd.Connection = conn;
             if (imported_importer.KPP.Equals("-"))
             {
-                sql = "INSERT INTO Wrk_Contragents (INN,OrgName,OrgType,producer,carrier) VALUES " +
+                sql = "INSERT INTO Wrk_Contragents (INN,OrgName,OrgType,producer,carrier,RCode,CCode,Area,City,Place,Street,Building,Korp,Flat,Fl_surname,Fl_name,Fl_secname,Fl_address,Foreign_addres,Varnumber) VALUES " +
                     "('" + imported_importer.INN + "','"
                     + imported_importer.Name + "',"
                     + 1 + ","
                     + "'false',"
-                    + "'true')";
+                    + "'true','01','','','','','','','','','','','','','','')";
             }
             else
             {
-                sql = "INSERT INTO Wrk_Contragents (INN,KPP,OrgName,OrgType,producer,carrier) VALUES " +
+                sql = "INSERT INTO Wrk_Contragents (INN,KPP,OrgName,OrgType,producer,carrier,RCode,CCode,Area,City,Place,Street,Building,Korp,Flat,Fl_surname,Fl_name,Fl_secname,Fl_address,Foreign_addres,Varnumber) VALUES " +
       "('" + imported_importer.INN + "','"
       + imported_importer.KPP + "','"
       + imported_importer.Name + "',"
       + 1 + ","
       + "'false',"
-      + "'true')";
+      + "'true','01','','','','','','','','','','','','','','')";
             }
 
             cmd.CommandText = sql;
@@ -717,22 +793,22 @@ namespace Decl
             cmd.Connection = conn;
             if (imported_producer.KPP.Equals("-"))
             {
-                sql = "INSERT INTO Wrk_Contragents (INN,OrgName,OrgType,producer,carrier) VALUES " +
+                sql = "INSERT INTO Wrk_Contragents (INN,OrgName,OrgType,producer,carrier,RCode,CCode,Area,City,Place,Street,Building,Korp,Flat,Fl_surname,Fl_name,Fl_secname,Fl_address,Foreign_addres,Varnumber) VALUES " +
                     "('" + imported_producer.INN + "','"
                     + imported_producer.Name + "',"
                     + 1 + ","
                     + "'true',"
-                    + "'false')";
+                    + "'false','01','','','','','','','','','','','','','','')";
             }
             else
             {
-                sql = "INSERT INTO Wrk_Contragents (INN,KPP,OrgName,OrgType,producer,carrier) VALUES " +
+                sql = "INSERT INTO Wrk_Contragents (INN,KPP,OrgName,OrgType,producer,carrier,RCode,CCode,Area,City,Place,Street,Building,Korp,Flat,Fl_surname,Fl_name,Fl_secname,Fl_address,Foreign_addres,Varnumber) VALUES " +
       "('" + imported_producer.INN + "','"
       + imported_producer.KPP + "','"
       + imported_producer.Name + "',"
       + 1 + ","
       + "'true',"
-      + "'false')";
+      + "'false','01','','','','','','','','','','','','','','')";
             }
 
             cmd.CommandText = sql;
