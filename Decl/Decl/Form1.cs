@@ -628,7 +628,6 @@ namespace Decl
         {
             return organizations.Find(x => x.tabId == selectedIndex).availability_of_turnover;
         }
-
         private void deleteUploadBtnFromTabpage()
         {
             foreach (TabPage tpb in tabControl1.TabPages)
@@ -636,10 +635,69 @@ namespace Decl
                 tpb.Controls.OfType<Button>().ToList().ForEach(btn => btn.Dispose());
             }
         }
-
         private void button2_Click(object sender, EventArgs e)
         {
             import_producer_to_db();
+            import_importer_to_db();
+        }
+
+        private void import_importer_to_db()
+        {
+           foreach (importer imported_importer in importLs)
+            {
+                if (check_importer_in_db(imported_importer) == false)
+                {
+                    insert_importer_to_db(imported_importer);
+                }
+            }
+        }
+        private void insert_importer_to_db(importer imported_importer)
+        {
+            string sql;
+            SqlCeCommand cmd = new SqlCeCommand();
+            cmd.Connection = conn;
+            if (imported_importer.KPP.Equals("-"))
+            {
+                sql = "INSERT INTO Wrk_Contragents (INN,OrgName,OrgType,producer,carrier) VALUES " +
+                    "('" + imported_importer.INN + "','"
+                    + imported_importer.Name + "',"
+                    + 1 + ","
+                    + "'false',"
+                    + "'true')";
+            }
+            else
+            {
+                sql = "INSERT INTO Wrk_Contragents (INN,KPP,OrgName,OrgType,producer,carrier) VALUES " +
+      "('" + imported_importer.INN + "','"
+      + imported_importer.KPP + "','"
+      + imported_importer.Name + "',"
+      + 1 + ","
+      + "'false',"
+      + "'true')";
+            }
+
+            cmd.CommandText = sql;
+            int count = cmd.ExecuteNonQuery();
+        }
+        private bool check_importer_in_db(importer imported_importer)
+        {
+            string sql = null;
+            if (imported_importer.KPP.Equals("-"))
+            {
+                sql = "SELECT * FROM Wrk_Contragents WHERE INN='" + imported_importer.INN + "'";
+            }
+            else
+            {
+                sql = "SELECT * FROM Wrk_Contragents WHERE INN='" + imported_importer.INN + "' and KPP='" + imported_importer.KPP + "'";
+            }
+            SqlCeCommand cmd = new SqlCeCommand();
+            cmd.Connection = conn;
+            cmd.CommandText = sql;
+            using (SqlCeDataReader reader = cmd.ExecuteResultSet(ResultSetOptions.Scrollable))
+            {
+                if (reader.HasRows) return true;
+                else return false;
+            }
         }
 
         private void import_producer_to_db()
@@ -648,12 +706,11 @@ namespace Decl
             {
                 if (check_producer_in_db(imported_producer) == false)
                 {
-                    insert_organization_to_db(imported_producer);
+                    insert_producer_to_db(imported_producer);
                 }
             }
         }
-
-        private void insert_organization_to_db(producer imported_producer)
+        private void insert_producer_to_db(producer imported_producer)
         {
             string sql;
             SqlCeCommand cmd = new SqlCeCommand();
@@ -676,16 +733,11 @@ namespace Decl
       + 1 + ","
       + "'true',"
       + "'false')";
-                string dfd = @imported_producer.Name;
-                MessageBox.Show(dfd, "Выгрузка справочников", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
-
             }
 
             cmd.CommandText = sql;
             int count = cmd.ExecuteNonQuery();
-            MessageBox.Show("Выгрузка справочников окончена.", "Выгрузка справочников", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
         }
-
         private bool check_producer_in_db(producer imported_producer)
         {
             string sql = null;
@@ -715,7 +767,6 @@ namespace Decl
         public string INN { get; set; }
         public string KPP { get; set; }
     }
-
     public class importer
     {
         public string Name { get; set; }
@@ -723,7 +774,6 @@ namespace Decl
         public string INN { get; set; }
         public string KPP { get; set; }
     }
-
     public class supply
     {
         public int idProduct { get; set; }
@@ -734,7 +784,6 @@ namespace Decl
         public string quantitProduct { get; set; }
         public string sobst { get; set; }
     }
-
     public class movement
     {
         public string kodPr { get; set; }
