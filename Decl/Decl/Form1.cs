@@ -559,9 +559,15 @@ namespace Decl
 
             string[] name_and_kpp = organizations.Find(x => x.tabId == tabIndex).Name.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
             int id_organization = get_id_organization_from_db(name_and_kpp);
-
-
-            get_list_of_period_from_db();
+            if (id_organization > 0)
+            {
+                MessageBox.Show("Организация: "+ id_organization.ToString(), "Выгрузка завершена", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+            }
+            else
+            {
+                MessageBox.Show("Данной организации нет в базе данных. Пожалуйста проверьте xml или выгрузить справочники.", "Организация не обнаружена.", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+            }
+            //get_list_of_period_from_db();
         }
 
         private int get_id_organization_from_db(string[] name_and_kpp)
@@ -636,6 +642,8 @@ namespace Decl
             import_producer_to_db();
             import_importer_to_db();
             import_organization_to_db();
+            MessageBox.Show("Cправочники успешно выгружены.", "Выгрузка завершена", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+
         }
 
         private string get_kpp_organization()
