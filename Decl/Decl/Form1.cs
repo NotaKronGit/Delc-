@@ -23,6 +23,8 @@ namespace Decl
         private static SqlCeConnection conn = null;
         private static List<organization> organizations;
         private static string kpp_organization = null;
+        private static int priz_period;
+        private static int year_otch;
 
 
         private void button1_Click(object sender, EventArgs e)
@@ -52,6 +54,8 @@ namespace Decl
                 List<producer> findProd = new List<producer>();
                 string dateDoc = xdoc.Element("Файл").Attribute("ДатаДок").Value;
                 string period = "";
+                priz_period = Convert.ToInt32(xdoc.Element("Файл").Element("ФормаОтч").Attribute("ПризПериодОтч").Value);
+                year_otch = Convert.ToInt32(xdoc.Element("Файл").Element("ФормаОтч").Attribute("ГодПериодОтч").Value);
                 switch (xdoc.Element("Файл").Element("ФормаОтч").Attribute("ПризПериодОтч").Value)
                 {
                     case "0":
@@ -557,19 +561,147 @@ namespace Decl
             Button clickedButton = sender as Button;
             int tabIndex = tabControl1.TabPages.IndexOfKey(clickedButton.Parent.Name);
 
+            int type_id;
             string[] name_and_kpp = organizations.Find(x => x.tabId == tabIndex).Name.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
             int id_organization = get_id_organization_from_db(name_and_kpp);
             if (id_organization > 0)
             {
-                MessageBox.Show("Организация: "+ id_organization.ToString(), "Выгрузка завершена", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+                if (organizations.Find(x => x.tabId == tabIndex).id_alchol == 500) type_id = 12;
+                else type_id = 11;
+                if (get_dec_header_id(type_id) > 0)
+                {
+                    insert_decloration_to_db(id_organization, type_id, organizations.Find(x => x.tabId == tabIndex).turnover);
+                }
+                else
+                {
+                    DialogResult result = MessageBox.Show($"Для отчетного периода не создана форма {type_id}.Создать её автоматически и продолжить выгрузку?", "Ошибка импорта декларации", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                    if (result == DialogResult.Yes)
+                    {
+                        insert_dec_header(type_id);
+                        insert_decloration_to_db(id_organization, type_id, organizations.Find(x => x.tabId == tabIndex).turnover);
+                    }
+                }
             }
             else
             {
-                MessageBox.Show("Данной организации нет в базе данных. Пожалуйста проверьте xml или выгрузить справочники.", "Организация не обнаружена.", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+                MessageBox.Show("Данной организации нет в базе данных. Пожалуйста проверьте xml или выгрузите справочники.", "Организация не обнаружена.", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
             }
-            //get_list_of_period_from_db();
+
         }
 
+        private void insert_dec_header(int type_id)
+        {
+            string sql;
+            SqlCeCommand cmd = new SqlCeCommand();
+            cmd.Connection = conn;
+            sql = "INSERT INTO DecHeader (type_id,PrizPeriod,PrizFotch,Yearotch,typePK) " +
+           $"VALUES ({type_id},{priz_period},1,{year_otch},1)";
+
+
+            cmd.CommandText = sql;
+            int count = cmd.ExecuteNonQuery();
+        }
+
+        private void insert_decloration_to_db(int id_organization, int type_id, XElement turnover)
+        {
+            if (type_id == 11)
+            {
+                insert_to_dec11(id_organization, turnover);
+            }
+            else
+            {
+                insert_to_dec12(id_organization, turnover);
+            }
+        }
+
+        private void insert_to_dec12(int id_organization, XElement turnover)
+        {
+            int hid = get_dec_header_id(12);
+            foreach (XElement moveElement in turnover.Elements("Оборот"))
+            {
+                string alcohol_kod = moveElement.Attribute("П000000000003").Value;
+                foreach (XElement sales in moveElement.Elements("СведПроизвИмпорт"))
+                {
+                    string producer_id = get_producer_id_from_db(sales.Attribute("ИдПроизвИмп").Value);
+                    string sql;
+                    SqlCeCommand cmd = new SqlCeCommand();
+                    cmd.Connection = conn;
+                    sql = "INSERT INTO Wrk_Contragents (INN,OrgName,OrgType,producer,carrier,RCode,CCode,Area,City,Place,Street,Building,Korp,Flat,Fl_surname,Fl_name,Fl_secname,Fl_address,Foreign_addres,Varnumber)" +
+                    $" VALUES ()";
+
+
+                    cmd.CommandText = sql;
+                    int count = cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        private void insert_to_dec11(int id_organization, XElement turnover)
+        {
+            int hid = get_dec_header_id(11);
+            foreach (XElement moveElement in turnover.Elements("Оборот"))
+            {
+                string alcohol_kod = moveElement.Attribute("П000000000003").Value;
+                foreach (XElement sales in moveElement.Elements("СведПроизвИмпорт"))
+                {
+                    int producer_id = Convert.ToInt32(get_producer_id_from_db(sales.Attribute("ИдПроизвИмп").Value));
+                    string sql;
+                    SqlCeCommand cmd = new SqlCeCommand();
+                    cmd.Connection = conn;
+                    sql = "INSERT INTO DecF11 (Hid,vidCode,ProdId,P106,P107,P108,P109,P110,P111,P112,P113,P114,P115" +
+                        ",P116,P117,P118,P119,P120,TTYPE,idOrg,P121)" +
+                    $" VALUES({hid},'{alcohol_kod}',{producer_id}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000006").Value)}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000007").Value)}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000008").Value)}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000009").Value)}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000010").Value)}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000011").Value)}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000012").Value)}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000013").Value)}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000014").Value)}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000015").Value)}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000016").Value)}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000017").Value)}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000018").Value)}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000019").Value)}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000020").Value)}" +
+                    $",1,'{id_organization.ToString()}',{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000021").Value)})";
+
+
+                    cmd.CommandText = sql;
+                    int count = cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        private string get_producer_id_from_db(string idProd)
+        {
+            string producer_id = null;
+            producer prd = prod.Find(x => x.Id == Convert.ToInt32(idProd));
+            producer_id = check_producer_in_db(prd).ToString();
+            return producer_id;
+        }
+
+        private int get_dec_header_id(int type_id)
+        {
+            string sql = null;
+            int id = 0;
+            sql = $"SELECT id FROM DecHeader WHERE type_id ={type_id} and PrizPeriod={priz_period} and Yearotch={year_otch}";
+
+
+            SqlCeCommand cmd = new SqlCeCommand();
+            cmd.Connection = conn;
+            cmd.CommandText = sql;
+            using (SqlCeDataReader reader = cmd.ExecuteResultSet(ResultSetOptions.Scrollable))
+            {
+                while (reader.Read())
+                {
+                    id = reader.GetInt32(0);
+                }
+                return id;
+            }
+        }
         private int get_id_organization_from_db(string[] name_and_kpp)
         {
             int id_organization = 0;
@@ -788,7 +920,7 @@ namespace Decl
         {
             foreach (producer imported_producer in prod)
             {
-                if (check_producer_in_db(imported_producer) == false)
+                if (check_producer_in_db(imported_producer) > 0)
                 {
                     insert_producer_to_db(imported_producer);
                 }
@@ -822,25 +954,30 @@ namespace Decl
             cmd.CommandText = sql;
             int count = cmd.ExecuteNonQuery();
         }
-        private bool check_producer_in_db(producer imported_producer)
+        private int check_producer_in_db(producer imported_producer)
         {
+            int id_producer = 0;
             string sql = null;
             if (imported_producer.KPP.Equals("-"))
             {
-                sql = "SELECT * FROM Wrk_Contragents WHERE INN='" + imported_producer.INN + "'";
+                sql = "SELECT Id FROM Wrk_Contragents WHERE INN='" + imported_producer.INN + "'";
             }
             else
             {
-                sql = "SELECT * FROM Wrk_Contragents WHERE INN='" + imported_producer.INN + "' and KPP='" + imported_producer.KPP + "'";
+                sql = "SELECT Id FROM Wrk_Contragents WHERE INN='" + imported_producer.INN + "' and KPP='" + imported_producer.KPP + "'";
             }
             SqlCeCommand cmd = new SqlCeCommand();
             cmd.Connection = conn;
             cmd.CommandText = sql;
             using (SqlCeDataReader reader = cmd.ExecuteResultSet(ResultSetOptions.Scrollable))
             {
-                if (reader.HasRows) return true;
-                else return false;
+                if (reader.HasRows)
+                    while (reader.Read())
+                    {
+                        id_producer = reader.GetInt32(0);
+                    }
             }
+            return id_producer;
         }
     }
 
