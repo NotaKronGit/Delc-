@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data.Common;
 using System.Data.SqlServerCe;
 using System.Drawing;
+using System.Globalization;
 using System.Linq;
 using System.Windows.Forms;
 using System.Xml.Linq;
@@ -546,7 +547,7 @@ namespace Decl
                 {
                     conn.Close();
                 }
-                label2.Text = "Выгрузка в базу данных производься не будет";
+                label2.Text = "Выгрузка в базу данных производься не будет ";
                 label2.ForeColor = Color.Red;
                 upLoadToDb = false;
                 deleteUploadBtnFromTabpage();
@@ -606,15 +607,15 @@ namespace Decl
         {
             if (type_id == 11)
             {
-                insert_to_dec11(id_organization, turnover);
+                insert_sales_to_dec11(id_organization, turnover);
             }
             else
             {
-                insert_to_dec12(id_organization, turnover);
+                insert_sales_to_dec12(id_organization, turnover);
             }
         }
 
-        private void insert_to_dec12(int id_organization, XElement turnover)
+        private void insert_sales_to_dec12(int id_organization, XElement turnover)
         {
             int hid = get_dec_header_id(12);
             foreach (XElement moveElement in turnover.Elements("Оборот"))
@@ -636,7 +637,7 @@ namespace Decl
             }
         }
 
-        private void insert_to_dec11(int id_organization, XElement turnover)
+        private void insert_sales_to_dec11(int id_organization, XElement turnover)
         {
             int hid = get_dec_header_id(11);
             foreach (XElement moveElement in turnover.Elements("Оборот"))
@@ -645,34 +646,58 @@ namespace Decl
                 foreach (XElement sales in moveElement.Elements("СведПроизвИмпорт"))
                 {
                     int producer_id = Convert.ToInt32(get_producer_id_from_db(sales.Attribute("ИдПроизвИмп").Value));
+                    CultureInfo eng = new CultureInfo("en-EN");
                     string sql;
                     SqlCeCommand cmd = new SqlCeCommand();
                     cmd.Connection = conn;
                     sql = "INSERT INTO DecF11 (Hid,vidCode,ProdId,P106,P107,P108,P109,P110,P111,P112,P113,P114,P115" +
                         ",P116,P117,P118,P119,P120,TTYPE,idOrg,P121)" +
                     $" VALUES({hid},'{alcohol_kod}',{producer_id}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000006").Value)}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000007").Value)}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000008").Value)}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000009").Value)}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000010").Value)}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000011").Value)}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000012").Value)}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000013").Value)}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000014").Value)}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000015").Value)}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000016").Value)}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000017").Value)}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000018").Value)}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000019").Value)}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000020").Value)}" +
-                    $",1,'{id_organization.ToString()}',{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000021").Value)})";
-
-
+                    $",{(Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000006").Value, eng).ToString().Replace(",","."))}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000007").Value, eng).ToString().Replace(",",".")}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000008").Value, eng).ToString().Replace(",",".")}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000009").Value, eng).ToString().Replace(",",".")}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000010").Value, eng).ToString().Replace(",",".")}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000011").Value, eng).ToString().Replace(",",".")}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000012").Value, eng).ToString().Replace(",",".")}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000013").Value, eng).ToString().Replace(",",".")}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000014").Value, eng).ToString().Replace(",",".")}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000015").Value, eng).ToString().Replace(",",".")}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000016").Value, eng).ToString().Replace(",",".")}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000017").Value, eng).ToString().Replace(",",".")}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000018").Value, eng).ToString().Replace(",",".")}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000019").Value, eng).ToString().Replace(",",".")}" +
+                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000020").Value, eng).ToString().Replace(",",".")}" +
+                    $",1,'{id_organization.ToString()}',{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000021").Value, eng).ToString().Replace(",",".")})";
                     cmd.CommandText = sql;
                     int count = cmd.ExecuteNonQuery();
+                    if (sales.Elements("Поставщик") != null)
+                        foreach (XElement arrival in sales.Elements("Поставщик"))
+                        {
+                            insert_arrival_to_dec11(hid, alcohol_kod, producer_id, id_organization, arrival);
+                        }
                 }
             }
+        }
+
+        private void insert_arrival_to_dec11(int hid, string alcohol_kod, int producer_id, int id_organization, XElement arrival)
+        {
+            CultureInfo eng = new CultureInfo("en-US");
+            int importer_id = Convert.ToInt32(arrival.Attribute("ИдПоставщика").Value);
+            int license_importer_id = Convert.ToInt32(arrival.Attribute("ИдЛицензии").Value);
+            SqlCeCommand cmd = new SqlCeCommand();
+            cmd.Connection = conn;
+// insert foreach 
+foreach
+            string sql = "INSERT INTO DecF11 (Hid,vidCode,ProdId,idPost,idLic,P213,P214,P215,P216,TTYPE,idOrg)" +
+                $" VALUES({hid},'{alcohol_kod}',{producer_id},{importer_id},{license_importer_id}" +
+                $",'{arrival.Element("Продукция").Attribute("П200000000013").Value}'" +
+                $",'{arrival.Element("Продукция").Attribute("П200000000014").Value}'" +
+                $",'{arrival.Element("Продукция").Attribute("П200000000015").Value}'" +
+                $",{Convert.ToDecimal(arrival.Element("Продукция").Attribute("П200000000016").Value, eng).ToString().Replace(",",".")}" +
+                $",2,{id_organization})";
+            cmd.CommandText = sql;
+            int count = cmd.ExecuteNonQuery();
         }
 
         private string get_producer_id_from_db(string idProd)
@@ -920,7 +945,7 @@ namespace Decl
         {
             foreach (producer imported_producer in prod)
             {
-                if (check_producer_in_db(imported_producer) > 0)
+                if (check_producer_in_db(imported_producer) == 0)
                 {
                     insert_producer_to_db(imported_producer);
                 }
