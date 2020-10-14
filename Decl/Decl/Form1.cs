@@ -387,8 +387,6 @@ namespace Decl
                             setSupply(Convert.ToInt32(kod), Convert.ToInt32(sales.Attribute("ИдПроизвИмп").Value), sobst, supply);
                         }
                     }
-
-
                     string pn = sales.Element("Движение").Attribute("П100000000006").Value;
                     dgv.Rows.Add(kod, proizv
                       , sales.Element("Движение").Attribute("П100000000006").Value
@@ -411,6 +409,11 @@ namespace Decl
                       , sales.Attribute("ИдПроизвИмп").Value
                       , sobst
                       );
+                   if (imp != "0")
+                    {
+                        dgv.Rows[dgv.Rows.Count - 1].DefaultCellStyle.ForeColor = Color.DarkRed;
+                        dgv.Rows[dgv.Rows.Count - 1].DefaultCellStyle.BackColor = Color.LightGray;
+                    }
                 }
             }
 
@@ -645,11 +648,34 @@ namespace Decl
                     $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000017").Value, eng).ToString().Replace(",", ".")}" +
                     $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000018").Value, eng).ToString().Replace(",", ".")}" +
                     $",1,'{id_organization.ToString()}')";
-
-
                     cmd.CommandText = sql;
                     int count = cmd.ExecuteNonQuery();
+                    if (sales.Elements("Поставщик") != null)
+                        foreach (XElement arrival in sales.Elements("Поставщик"))
+                        {
+                            insert_arrival_to_dec12(hid, alcohol_kod, producer_id, id_organization, arrival);
+                        }
                 }
+            }
+        }
+
+        private void insert_arrival_to_dec12(int hid, string alcohol_kod, string producer_id, int id_organization, XElement arrival)
+        {
+            CultureInfo eng = new CultureInfo("en");
+            int importer_id = Convert.ToInt32(arrival.Attribute("ИдПоставщика").Value);
+             SqlCeCommand cmd = new SqlCeCommand();
+            cmd.Connection = conn;
+            foreach (XElement goods in arrival.Elements("Продукция"))
+            {
+                string sql = "INSERT INTO DecF11 (Hid,vidCode,ProdId,idPost,P29,P210,P211,P212,TTYPE,idOrg)" +
+                    $" VALUES({hid},'{alcohol_kod}',{producer_id},{importer_id}," +
+                    $",'{goods.Attribute("П200000000013").Value}'" +
+                    $",'{goods.Attribute("П200000000014").Value}'" +
+                    $",'{goods.Attribute("П200000000015").Value}'" +
+                    $",{Convert.ToDecimal(goods.Attribute("П200000000016").Value, eng).ToString().Replace(",", ".")}" +
+                    $",2,{id_organization})";
+                cmd.CommandText = sql;
+                int count = cmd.ExecuteNonQuery();
             }
         }
 
@@ -687,11 +713,37 @@ namespace Decl
                     $",1,'{id_organization.ToString()}',{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000021").Value, eng).ToString().Replace(",",".")})";
                     cmd.CommandText = sql;
                     int count = cmd.ExecuteNonQuery();
-                    }
+                    if (sales.Elements("Поставщик") != null)
+                        foreach (XElement arrival in sales.Elements("Поставщик"))
+                        {
+                            insert_arrival_to_dec11(hid, alcohol_kod, producer_id, id_organization, arrival);
+                        }
+                }
             }
         }
 
-     
+        private void insert_arrival_to_dec11(int hid, string alcohol_kod, int producer_id, int id_organization, XElement arrival)
+        {
+            CultureInfo eng = new CultureInfo("en");
+            int importer_id = Convert.ToInt32(arrival.Attribute("ИдПоставщика").Value);
+            int license_importer_id = Convert.ToInt32(arrival.Attribute("ИдЛицензии").Value);
+            SqlCeCommand cmd = new SqlCeCommand();
+            cmd.Connection = conn;
+            // insert foreach 
+            foreach (XElement goods in arrival.Elements("Продукция"))
+            {
+                string sql = "INSERT INTO DecF11 (Hid,vidCode,ProdId,idPost,idLic,P213,P214,P215,P216,TTYPE,idOrg)" +
+                    $" VALUES({hid},'{alcohol_kod}',{producer_id},{importer_id},{license_importer_id}" +
+                    $",'{goods.Attribute("П200000000013").Value}'" +
+                    $",'{goods.Attribute("П200000000014").Value}'" +
+                    $",'{goods.Attribute("П200000000015").Value}'" +
+                    $",{Convert.ToDecimal(goods.Attribute("П200000000016").Value, eng).ToString().Replace(",", ".")}" +
+                    $",2,{id_organization})";
+                cmd.CommandText = sql;
+                int count = cmd.ExecuteNonQuery();
+            }
+        }
+
         private string get_producer_id_from_db(string idProd)
         {
             string producer_id = null;
