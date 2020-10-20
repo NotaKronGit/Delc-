@@ -200,7 +200,7 @@ namespace Decl
         {
             DataGridView dgv = new DataGridView();
 
-            if (kod == 500)
+            if ((kod == 500)|| (kod == 510)|| (kod == 520))
             {
                 dgv = createPivoTable(xmlParse);
             }
@@ -374,6 +374,7 @@ namespace Decl
                 {
                     string imp = "0";
                     string proizv = getPordName(sales.Attribute("ИдПроизвИмп").Value);
+                    
                     string sobst = xmlParse.Attribute("Наим").Value;
                     if (xmlParse.Attribute("КППЮЛ") != null)
                     {
@@ -414,6 +415,7 @@ namespace Decl
                         dgv.Rows[dgv.Rows.Count - 1].DefaultCellStyle.ForeColor = Color.DarkRed;
                         dgv.Rows[dgv.Rows.Count - 1].DefaultCellStyle.BackColor = Color.LightGray;
                     }
+                    if (proizv == "") dgv.Rows[dgv.Rows.Count - 1].DefaultCellStyle.BackColor = Color.GreenYellow;
                 }
             }
 
@@ -422,10 +424,13 @@ namespace Decl
         }
         private string getPordName(string idProd)
         {
-            string nameProd;
-            nameProd = prod.Find(x => x.Id == Convert.ToInt32(idProd)).Name;
-            nameProd += ": " + prod.Find(x => x.Id == Convert.ToInt32(idProd)).INN;
-            nameProd += "/ " + prod.Find(x => x.Id == Convert.ToInt32(idProd)).KPP;
+            string nameProd="";
+            if (prod.Find(x => x.Id == Convert.ToInt32(idProd))!=null)
+            {
+                nameProd = prod.Find(x => x.Id == Convert.ToInt32(idProd)).Name;
+                nameProd += ": " + prod.Find(x => x.Id == Convert.ToInt32(idProd)).INN;
+                nameProd += "/ " + prod.Find(x => x.Id == Convert.ToInt32(idProd)).KPP;
+            }
             return nameProd;
         }
         private string getImpName(string idProd)
@@ -616,6 +621,7 @@ namespace Decl
             {
                 insert_sales_to_dec12(id_organization, turnover);
             }
+            MessageBox.Show("Данные  успешно выгружены.", "Выгрузка завершена", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
         }
 
         private void insert_sales_to_dec12(int id_organization, XElement turnover)
@@ -688,31 +694,33 @@ namespace Decl
                 foreach (XElement sales in moveElement.Elements("СведПроизвИмпорт"))
                 {
                     int producer_id = Convert.ToInt32(get_producer_id_from_db(sales.Attribute("ИдПроизвИмп").Value));
-                    CultureInfo eng = new CultureInfo("en");
-                    string sql;
-                    SqlCeCommand cmd = new SqlCeCommand();
-                    cmd.Connection = conn;
-                    sql = "INSERT INTO DecF11 (Hid,vidCode,ProdId,P106,P107,P108,P109,P110,P111,P112,P113,P114,P115" +
-                        ",P116,P117,P118,P119,P120,TTYPE,idOrg,P121)" +
-                    $" VALUES({hid},'{alcohol_kod}',{producer_id}" +
-                    $",{(Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000006").Value, eng).ToString().Replace(",","."))}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000007").Value, eng).ToString().Replace(",",".")}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000008").Value, eng).ToString().Replace(",",".")}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000009").Value, eng).ToString().Replace(",",".")}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000010").Value, eng).ToString().Replace(",",".")}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000011").Value, eng).ToString().Replace(",",".")}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000012").Value, eng).ToString().Replace(",",".")}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000013").Value, eng).ToString().Replace(",",".")}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000014").Value, eng).ToString().Replace(",",".")}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000015").Value, eng).ToString().Replace(",",".")}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000016").Value, eng).ToString().Replace(",",".")}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000017").Value, eng).ToString().Replace(",",".")}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000018").Value, eng).ToString().Replace(",",".")}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000019").Value, eng).ToString().Replace(",",".")}" +
-                    $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000020").Value, eng).ToString().Replace(",",".")}" +
-                    $",1,'{id_organization.ToString()}',{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000021").Value, eng).ToString().Replace(",",".")})";
-                    cmd.CommandText = sql;
-                    int count = cmd.ExecuteNonQuery();
+                    
+                        CultureInfo eng = new CultureInfo("en");
+                        string sql;
+                        SqlCeCommand cmd = new SqlCeCommand();
+                        cmd.Connection = conn;
+                        sql = "INSERT INTO DecF11 (Hid,vidCode,ProdId,P106,P107,P108,P109,P110,P111,P112,P113,P114,P115" +
+                            ",P116,P117,P118,P119,P120,TTYPE,idOrg,P121)" +
+                        $" VALUES({hid},'{alcohol_kod}',{producer_id}" +
+                        $",{(Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000006").Value, eng).ToString().Replace(",", "."))}" +
+                        $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000007").Value, eng).ToString().Replace(",", ".")}" +
+                        $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000008").Value, eng).ToString().Replace(",", ".")}" +
+                        $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000009").Value, eng).ToString().Replace(",", ".")}" +
+                        $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000010").Value, eng).ToString().Replace(",", ".")}" +
+                        $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000011").Value, eng).ToString().Replace(",", ".")}" +
+                        $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000012").Value, eng).ToString().Replace(",", ".")}" +
+                        $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000013").Value, eng).ToString().Replace(",", ".")}" +
+                        $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000014").Value, eng).ToString().Replace(",", ".")}" +
+                        $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000015").Value, eng).ToString().Replace(",", ".")}" +
+                        $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000016").Value, eng).ToString().Replace(",", ".")}" +
+                        $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000017").Value, eng).ToString().Replace(",", ".")}" +
+                        $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000018").Value, eng).ToString().Replace(",", ".")}" +
+                        $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000019").Value, eng).ToString().Replace(",", ".")}" +
+                        $",{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000020").Value, eng).ToString().Replace(",", ".")}" +
+                        $",1,'{id_organization.ToString()}',{Convert.ToDecimal(sales.Element("Движение").Attribute("П100000000021").Value, eng).ToString().Replace(",", ".")})";
+                        cmd.CommandText = sql;
+                        int count = cmd.ExecuteNonQuery();
+                    
                     if (sales.Elements("Поставщик") != null)
                         foreach (XElement arrival in sales.Elements("Поставщик"))
                         {
@@ -721,6 +729,8 @@ namespace Decl
                 }
             }
         }
+
+
 
         private void insert_arrival_to_dec11(int hid, string alcohol_kod, int producer_id, int id_organization, XElement arrival)
         {
@@ -799,17 +809,6 @@ namespace Decl
             return id_organization;
         }
 
-        private void get_list_of_period_from_db()
-        {
-            string sql = "Select * From DecHeader";
-            SqlCeCommand cmd = new SqlCeCommand();
-            cmd.Connection = conn;
-            cmd.CommandText = sql;
-            using (SqlCeDataReader reader = cmd.ExecuteResultSet(ResultSetOptions.Scrollable))
-            {
-                if (reader.HasRows) sql = "sdsdsd";
-            }
-        }
         private void addUploadBtnonTabpage()
         {
             foreach (TabPage tpb in tabControl1.TabPages)

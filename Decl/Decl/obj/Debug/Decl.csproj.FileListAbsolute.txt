@@ -10,7 +10,6 @@ C:\DelcC#\Decl\Decl\obj\Debug\Decl.pdb
 C:\DelcC#\Decl\Decl\bin\Debug\System.Data.SqlServerCe.dll
 C:\DelcC#\Decl\Decl\bin\Debug\RU\System.Data.SqlServerCe.resources.dll
 C:\DelcC#\Decl\Decl\obj\Debug\Decl.csproj.CopyComplete
-C:\DelcC#\Decl\Decl\obj\Debug\Decl.csprojAssemblyReference.cache
 C:\Delc\Delc-\Decl\Decl\bin\Debug\Decl.exe.config
 C:\Delc\Delc-\Decl\Decl\bin\Debug\Decl.exe
 C:\Delc\Delc-\Decl\Decl\bin\Debug\Decl.pdb
